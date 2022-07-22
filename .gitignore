@@ -1,2 +1,2 @@
-./bin/*
-./lib/bin/*
+bin
+lib/bin
