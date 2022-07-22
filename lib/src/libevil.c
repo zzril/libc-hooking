@@ -21,7 +21,7 @@ typedef int (*vfprintf_like_func) (FILE* stream, const char* format, va_list ap)
 
 // --------
 
-static __attribute__ ((constructor)) void pre();
+static __attribute__ ((constructor)) void libevil_init();
 
 static void clean_environment();
 static void load_glibc_functions();
@@ -35,12 +35,11 @@ static void log_function_call_impl(const char* function_name, int returned);
 // --------
 
 static fprintf_like_func glibc_fprintf = NULL;
-static fputs_like_func glibc_fputs = NULL;
 static vfprintf_like_func glibc_vfprintf = NULL;
 
 // --------
 
-static void pre() {
+static void libevil_init() {
 	clean_environment();
 	load_glibc_functions();
 	return;
@@ -55,7 +54,6 @@ static void load_glibc_functions() {
 	// Load `fprintf` first, so we can already use it for
 	// error messages if any other of the imports fails:
 	glibc_fprintf = (fprintf_like_func) get_glibc_function_addr("fprintf");
-	glibc_fputs = (fputs_like_func) get_glibc_function_addr("fputs");
 	glibc_vfprintf = (vfprintf_like_func) get_glibc_function_addr("vfprintf");
 	return;
 }
@@ -87,8 +85,7 @@ static int loggerf(const char* format, ...) {
 
 static int vloggerf(const char* format, va_list ap) {
 	int chars_printed = 0;
-	glibc_fputs(LOGGER_START, LOGGING_STREAM);
-	//chars_printed += vfprintf(LOGGING_STREAM, format, ap);
+	glibc_fprintf(LOGGING_STREAM, LOGGER_START);
 	chars_printed += glibc_vfprintf(LOGGING_STREAM, format, ap);
 	return chars_printed;
 }
@@ -107,7 +104,7 @@ int fputs(const char* s, FILE* stream) {
 	LOG_FUNCTION_CALL;
 
 	// Call actual fputs:
-	return_value += glibc_fputs(s, stream);
+	return_value += glibc_fprintf(stream, "%s", s);
 
 	LOG_FUNCTION_RET;
 
@@ -139,8 +136,7 @@ int puts(const char* s) {
 	LOG_FUNCTION_CALL;
 
 	//Call actual puts:
-	return_value += glibc_fputs(s, stdout);
-	return_value += glibc_fputs("\n", stdout);
+	return_value += glibc_fprintf(stdout, "%s\n", s);
 
 	LOG_FUNCTION_RET;
 
@@ -158,6 +154,20 @@ int printf(const char* format, ...) {
 	va_start(ap, format);
 	return_value += glibc_vfprintf(stdout, format, ap);
 	va_end(ap);
+
+	LOG_FUNCTION_RET;
+
+	return return_value;
+}
+
+int vfprintf(FILE* stream, const char* format, va_list ap) {
+
+	int return_value = 0;
+
+	LOG_FUNCTION_CALL;
+
+	// Call actual vfprintf:
+	return_value += glibc_vfprintf(stream, format, ap);
 
 	LOG_FUNCTION_RET;
 
