@@ -23,9 +23,16 @@ CFLAGS=-Wall -Wextra -pedantic
 LIB_CFLAGS=$(CFLAGS) -shared -fPIC
 LIB_LD_FLAGS=-ldl
 
+RM=rm
+
 # --------
 
-all: $(BIN)
+all: main lib
+
+clean:
+	$(RM) ./$(BIN) ./$(LIB_BIN) || true
+
+main: $(BIN)
 
 lib: $(LIB_BIN)
 

@@ -5,9 +5,12 @@
 
 int main() {
 
-	fputs("Hello!\n", stdout);
-
 	char* preloaded_libs = getenv("LD_PRELOAD");
+
+	fprintf(stdout, "Hello from `fprintf`!\n");
+	fputs("Hello from `fputs`!\n", stdout);
+	printf("Hello from `printf`!\n");
+	puts("Hello from `puts`!");
 
 	if(preloaded_libs == NULL) {
 		printf("No custom libraries detected.\n");

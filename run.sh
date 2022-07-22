@@ -3,7 +3,7 @@
 cmd="./bin/helloworld"
 lib_path="./lib/bin/libevil.so"
 
-make && make lib
+make
 
 printf "\nNormal:\n"
 $cmd
