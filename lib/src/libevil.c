@@ -1,26 +1,35 @@
 #define _GNU_SOURCE
 
+#include <stdio.h>	// for FILE* and declarations of our wrapper functions
+
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdlib.h>
 
-#include <dlfcn.h>
+#include <dlfcn.h>	// for dlsym
 
 // --------
 
 #define LOGGING_STREAM stderr
 #define LOGGER_START "\x1b[31m[*] \x1b[0m"
+
+// Unused atm, but this may be pretty handy when adding new functions:
+
 #define LOG_FUNCTION_CALL do {log_function_call_impl(__func__, 0);} while(0)
 #define LOG_FUNCTION_RET do {log_function_call_impl(__func__, 1);} while(0)
 
 // --------
 
 typedef int (*fprintf_like_func) (FILE* stream, const char* format, ...);
-typedef int (*fputs_like_func) (const char *s, FILE *stream);
 typedef int (*vfprintf_like_func) (FILE* stream, const char* format, va_list ap);
 
 // --------
 
+// Static function declarations:
+
+/**
+ * Initializes the global function pointers and
+ * unsets the `LD_PRELOAD` environment variable.
+ */
 static __attribute__ ((constructor)) void libevil_init();
 
 static void clean_environment();
@@ -37,10 +46,14 @@ static int vfprintf_impl(FILE* stream, const char* orig_name, const char* format
 
 // --------
 
+// Global function pointers to the original glibc versions:
+
 static fprintf_like_func glibc_fprintf = NULL;
 static vfprintf_like_func glibc_vfprintf = NULL;
 
 // --------
+
+// Static function implementations:
 
 static void libevil_init() {
 	clean_environment();
@@ -127,6 +140,8 @@ static int vfprintf_impl(FILE* stream, const char* orig_name, const char* format
 }
 
 // --------
+
+// Implementations of functions we want to overwrite:
 
 int fputs(const char* s, FILE* stream) {
 	return fputs_impl(s, stream, __func__, 0);
