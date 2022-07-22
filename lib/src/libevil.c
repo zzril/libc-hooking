@@ -32,6 +32,9 @@ static int vloggerf(const char* format, va_list ap);
 
 static void log_function_call_impl(const char* function_name, int returned);
 
+static int fputs_impl(const char* s, FILE* stream, const char* orig_name, int newline);
+static int vfprintf_impl(FILE* stream, const char* orig_name, const char* format, va_list ap);
+
 // --------
 
 static fprintf_like_func glibc_fprintf = NULL;
@@ -95,83 +98,69 @@ static void log_function_call_impl(const char* function_name, int returned) {
 	return;
 }
 
-// --------
-
-int fputs(const char* s, FILE* stream) {
+static int fputs_impl(const char* s, FILE* stream, const char* orig_name, int newline) {
 
 	int return_value = 0;
 
-	LOG_FUNCTION_CALL;
+	log_function_call_impl(orig_name, 0);
 
 	// Call actual fputs:
-	return_value += glibc_fprintf(stream, "%s", s);
+	return_value += glibc_fprintf(stream, newline ? "%s\n" : "%s", s);
 
-	LOG_FUNCTION_RET;
+	log_function_call_impl(orig_name, 1);
 
 	return return_value;
 }
 
-int fprintf(FILE* stream, const char* format, ...) {
+static int vfprintf_impl(FILE* stream, const char* orig_name, const char* format, va_list ap) {
 
 	int return_value = 0;
+
+	log_function_call_impl(orig_name, 0);
+
+	// Call actuall vfprintf:
+	return_value += glibc_vfprintf(stream, format, ap);
+
+	log_function_call_impl(orig_name, 1);
+
+	return return_value;
+}
+
+// --------
+
+int fputs(const char* s, FILE* stream) {
+	return fputs_impl(s, stream, __func__, 0);
+}
+
+int fprintf(FILE* stream, const char* format, ...) {
+
 	va_list ap;
 
-	LOG_FUNCTION_CALL;
-
-	// Call actual fprintf:
 	va_start(ap, format);
-	return_value += glibc_vfprintf(stream, format, ap);
+	int return_value = vfprintf_impl(stream, __func__, format, ap);
 	va_end(ap);
-
-	LOG_FUNCTION_RET;
 
 	return return_value;
 }
 
 
 int puts(const char* s) {
-
-	int return_value = 0;
-
-	LOG_FUNCTION_CALL;
-
-	//Call actual puts:
-	return_value += glibc_fprintf(stdout, "%s\n", s);
-
-	LOG_FUNCTION_RET;
-
-	return return_value;
+	return fputs_impl(s, stdout, __func__, 1);
 }
 
 int printf(const char* format, ...) {
 
-	int return_value = 0;
 	va_list ap;
 
-	LOG_FUNCTION_CALL;
-
-	// Call actual printf:
 	va_start(ap, format);
-	return_value += glibc_vfprintf(stdout, format, ap);
+	int return_value = vfprintf_impl(stdout, __func__, format, ap);
 	va_end(ap);
-
-	LOG_FUNCTION_RET;
 
 	return return_value;
 }
 
 int vfprintf(FILE* stream, const char* format, va_list ap) {
-
-	int return_value = 0;
-
-	LOG_FUNCTION_CALL;
-
-	// Call actual vfprintf:
-	return_value += glibc_vfprintf(stream, format, ap);
-
-	LOG_FUNCTION_RET;
-
-	return return_value;
+	return vfprintf_impl(stream, __func__, format, ap);
 }
 
 
